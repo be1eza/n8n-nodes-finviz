@@ -4,13 +4,15 @@ import type {
     INodeType,
     INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeConnectionTypes } from 'n8n-workflow';
+import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 export class Finviz implements INodeType {
     description: INodeTypeDescription = {
         displayName: 'Finviz',
         name: 'finviz',
+        // eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg, @n8n/community-nodes/icon-validation
         icon: 'file:finviz.png',
+        subtitle: '={{$parameter["screenerName"] || "Screener"}}',
         group: ['input'],
         version: 1,
         description: 'Fetch screener data from Finviz Elite',
@@ -49,7 +51,7 @@ export class Finviz implements INodeType {
                 name: 'returnAll',
                 type: 'boolean',
                 default: false,
-                description: 'Whether to return all results or limit the number',
+                description: 'Whether to return all results or only up to a given limit',
             },
             {
                 displayName: 'Limit',
@@ -74,44 +76,52 @@ export class Finviz implements INodeType {
         const returnData: INodeExecutionData[] = [];
 
         for (let i = 0; i < items.length; i++) {
-            const screenerName = this.getNodeParameter('screenerName', i) as string;
-            const screenerUrl = this.getNodeParameter('screenerUrl', i) as string;
-            const returnAll = this.getNodeParameter('returnAll', i) as boolean;
-            const limit = returnAll ? 0 : (this.getNodeParameter('limit', i) as number);
+            try {
+                const screenerName = this.getNodeParameter('screenerName', i) as string;
+                const screenerUrl = this.getNodeParameter('screenerUrl', i) as string;
+                const returnAll = this.getNodeParameter('returnAll', i) as boolean;
+                const limit = returnAll ? 0 : (this.getNodeParameter('limit', i) as number);
 
-            const url = new URL(screenerUrl);
-            const qs: Record<string, string> = {};
-            url.searchParams.forEach((value, key) => {
-                qs[key] = value;
-            });
+                const url = new URL(screenerUrl);
+                const qs: Record<string, string> = {};
+                url.searchParams.forEach((value, key) => {
+                    qs[key] = value;
+                });
 
-            const response = await this.helpers.httpRequestWithAuthentication.call(
-                this,
-                'finvizApi',
-                {
-                    method: 'GET',
-                    url: 'https://elite.finviz.com/export',
-                    qs,
-                },
-            );
+                const response = await this.helpers.httpRequestWithAuthentication.call(
+                    this,
+                    'finvizApi',
+                    {
+                        method: 'GET',
+                        url: 'https://elite.finviz.com/export',
+                        qs,
+                    },
+                );
 
-            const csv = typeof response === 'string' ? response : JSON.stringify(response);
-            const lines = csv.replace(/\r/g, '').split('\n').filter((line: string) => line.trim());
-            if (lines.length < 2) continue;
+                const csv = typeof response === 'string' ? response : JSON.stringify(response);
+                const lines = csv.replace(/\r/g, '').split('\n').filter((line: string) => line.trim());
+                if (lines.length < 2) continue;
 
-            const headers = parseCsvLine(lines[0]);
-            const dataLines = lines.slice(1);
-            const count = returnAll ? dataLines.length : Math.min(limit, dataLines.length);
+                const headers = parseCsvLine(lines[0]);
+                const dataLines = lines.slice(1);
+                const count = returnAll ? dataLines.length : Math.min(limit, dataLines.length);
 
-            for (let j = 0; j < count; j++) {
-                const values = parseCsvLine(dataLines[j]);
-                const row: Record<string, string> = {
-                    'Screener Name': screenerName,
-                };
-                for (let k = 0; k < headers.length; k++) {
-                    row[headers[k]] = values[k] ?? '';
+                for (let j = 0; j < count; j++) {
+                    const values = parseCsvLine(dataLines[j]);
+                    const row: Record<string, string> = {
+                        'Screener Name': screenerName,
+                    };
+                    for (let k = 0; k < headers.length; k++) {
+                        row[headers[k]] = values[k] ?? '';
+                    }
+                    returnData.push({ json: row, pairedItem: { item: i } });
                 }
-                returnData.push({ json: row });
+            } catch (error) {
+                if (this.continueOnFail()) {
+                    returnData.push({ json: { error: (error as Error).message }, pairedItem: { item: i } });
+                } else {
+                    throw new NodeOperationError(this.getNode(), error as Error, { itemIndex: i });
+                }
             }
         }
 

@@ -2,6 +2,7 @@ import type {
     IAuthenticateGeneric,
     ICredentialTestRequest,
     ICredentialType,
+    Icon,
     INodeProperties,
 } from 'n8n-workflow'
 
@@ -9,6 +10,11 @@ export class FinvizApi implements ICredentialType {
     name = 'finvizApi';
 
     displayName = 'Finviz API';
+
+    // eslint-disable-next-line @n8n/community-nodes/icon-validation
+    icon: Icon = 'file:../nodes/Finviz/finviz.png';
+
+    documentationUrl = 'https://elite.finviz.com/';
 
     properties: INodeProperties[] = [
         {
