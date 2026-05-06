@@ -1,0 +1,13 @@
+{
+    "node": "n8n-nodes-finviz",
+    "nodeVersion": "1.0",
+    "codexVersion": "1.0",
+    "categories": ["Finance & Accounting"],
+    "resources": {
+        "primaryDocumentation": [
+            {
+                "url": "https://elite.finviz.com/api_explanation" 
+            }
+        ]
+    }
+}
