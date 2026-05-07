@@ -24,6 +24,9 @@
 		"prepublishOnly": "n8n-node prerelease",
 		"test": "jest"
 	},
+	"publishConfig": {
+		"access": "public"
+	},
 	"files": [
 		"dist"
 	],
