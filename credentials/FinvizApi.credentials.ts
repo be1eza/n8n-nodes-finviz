@@ -11,8 +11,7 @@ export class FinvizApi implements ICredentialType {
 
     displayName = 'Finviz API';
 
-    // eslint-disable-next-line @n8n/community-nodes/icon-validation
-    icon: Icon = 'file:../nodes/Finviz/finviz.png';
+    icon: Icon = 'file:../nodes/Finviz/finviz.svg';
 
     documentationUrl = 'https://elite.finviz.com/';
 

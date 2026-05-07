@@ -10,8 +10,7 @@ export class Finviz implements INodeType {
     description: INodeTypeDescription = {
         displayName: 'Finviz',
         name: 'finviz',
-        // eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg, @n8n/community-nodes/icon-validation
-        icon: 'file:finviz.png',
+        icon: 'file:finviz.svg',
         subtitle: '={{$parameter["screenerName"] || "Screener"}}',
         group: ['input'],
         version: 1,
@@ -129,7 +128,7 @@ export class Finviz implements INodeType {
     }
 }
 
-function parseCsvLine(line: string): string[] {
+export function parseCsvLine(line: string): string[] {
     const result: string[] = [];
     let current = '';
     let inQuotes = false;
