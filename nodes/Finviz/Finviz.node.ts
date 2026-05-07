@@ -41,7 +41,7 @@ export class Finviz implements INodeType {
                 name: 'screenerUrl',
                 type: 'string',
                 default: '',
-                placeholder: 'https://elite.finviz.com/screener?v=111&f=idx_sp500',
+                placeholder: 'e.g. https://elite.finviz.com/screener?v=111&f=idx_sp500',
                 description: 'Paste a Finviz screener URL from your browser. To choose which columns are returned, go to the Custom tab on the screener page, click Customize, toggle at least one column, then copy the URL — it will include a &c= parameter with your column selection.',
                 required: true,
             },
