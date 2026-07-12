@@ -47,6 +47,57 @@ export class Finviz implements INodeType {
                 required: true,
             },
             {
+                displayName: 'Output Format',
+                name: 'outputFormat',
+                type: 'options',
+                default: 'json',
+                description: 'How to output the screener data',
+                options: [
+                    {
+                        name: 'CSV (Binary File)',
+                        value: 'binary',
+                        description: 'The raw CSV attached as a binary file, e.g. to commit to GitHub',
+                    },
+                    {
+                        name: 'CSV (Text)',
+                        value: 'text',
+                        description: 'The raw CSV as a string in a single field',
+                    },
+                    {
+                        name: 'JSON',
+                        value: 'json',
+                        description: 'One item per row, with each column as a field',
+                    },
+                ],
+            },
+            {
+                displayName: 'Output Field',
+                name: 'outputField',
+                type: 'string',
+                default: 'data',
+                description:
+                    'Name of the field to put the CSV in. For a binary file this is the binary property name; for text it is the JSON field name.',
+                displayOptions: {
+                    show: {
+                        outputFormat: ['binary', 'text'],
+                    },
+                },
+            },
+            {
+                displayName: 'File Name',
+                name: 'fileName',
+                type: 'string',
+                default: '',
+                placeholder: 'e.g. screener.csv',
+                description:
+                    'File name for the binary CSV. Leave empty to derive it from the Screener Name (falls back to screener.csv). A .csv extension is added if missing.',
+                displayOptions: {
+                    show: {
+                        outputFormat: ['binary'],
+                    },
+                },
+            },
+            {
                 displayName: 'Return All',
                 name: 'returnAll',
                 type: 'boolean',
@@ -79,6 +130,7 @@ export class Finviz implements INodeType {
             try {
                 const screenerName = this.getNodeParameter('screenerName', i) as string;
                 const screenerUrl = this.getNodeParameter('screenerUrl', i) as string;
+                const outputFormat = this.getNodeParameter('outputFormat', i) as string;
                 const returnAll = this.getNodeParameter('returnAll', i) as boolean;
                 const limit = returnAll ? 0 : (this.getNodeParameter('limit', i) as number);
 
@@ -102,9 +154,39 @@ export class Finviz implements INodeType {
                 const lines = csv.replace(/\r/g, '').split('\n').filter((line: string) => line.trim());
                 if (lines.length < 2) continue;
 
-                const headers = parseCsvLine(lines[0]);
                 const dataLines = lines.slice(1);
                 const count = returnAll ? dataLines.length : Math.min(limit, dataLines.length);
+
+                if (outputFormat === 'binary' || outputFormat === 'text') {
+                    // The raw split lines are already valid CSV, so slice them to
+                    // respect the limit without re-serializing (avoids re-quoting bugs).
+                    const outputCsv = [lines[0], ...dataLines.slice(0, count)].join('\n');
+                    const outputField = this.getNodeParameter('outputField', i) as string;
+
+                    if (outputFormat === 'text') {
+                        returnData.push({
+                            json: { 'Screener Name': screenerName, [outputField]: outputCsv },
+                            pairedItem: { item: i },
+                        });
+                    } else {
+                        const fileName = sanitizeFileName(
+                            (this.getNodeParameter('fileName', i) as string) || screenerName,
+                        );
+                        const binaryData = await this.helpers.prepareBinaryData(
+                            Buffer.from(outputCsv, 'utf8'),
+                            fileName,
+                            'text/csv',
+                        );
+                        returnData.push({
+                            json: { 'Screener Name': screenerName },
+                            binary: { [outputField]: binaryData },
+                            pairedItem: { item: i },
+                        });
+                    }
+                    continue;
+                }
+
+                const headers = parseCsvLine(lines[0]);
 
                 for (let j = 0; j < count; j++) {
                     const values = parseCsvLine(dataLines[j]);
@@ -127,6 +209,16 @@ export class Finviz implements INodeType {
 
         return [returnData];
     }
+}
+
+export function sanitizeFileName(name: string): string {
+    // Strip characters unsafe for file names, collapse whitespace, and trim.
+    const base = (name ?? '')
+        .replace(/\.csv$/i, '')
+        .replace(/[/\\?%*:|"<>]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return `${base || 'screener'}.csv`;
 }
 
 export function parseCsvLine(line: string): string[] {

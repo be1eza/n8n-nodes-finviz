@@ -19,12 +19,16 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 
 ## Operations
 
-- **Fetch screener data** — Paste a Finviz screener URL to get results as JSON items. Supports:
+- **Fetch screener data** — Paste a Finviz screener URL to get results. Supports:
   - Custom column selection (via the `&c=` URL parameter)
   - Custom filters (via the `&f=` URL parameter)
   - Sorting (via the `&o=` URL parameter)
   - Return all results or limit to a specific count
   - A screener name label added to each output item
+  - Multiple **Output Format** options:
+    - **JSON** (default) — one item per row, each column a field
+    - **CSV (Binary File)** — the raw CSV attached as a binary file (e.g. to commit to GitHub)
+    - **CSV (Text)** — the raw CSV as a string in a single field
 
 ## Credentials
 
@@ -49,7 +53,14 @@ Tested with n8n 1.x. Requires `n8nNodesApiVersion: 1`.
 7. Choose whether to return all results or set a limit
 8. Execute the node
 
-The node converts the screener URL to an export URL, fetches the CSV, and outputs each row as a JSON item.
+The node converts the screener URL to an export URL, fetches the CSV, and by default outputs each row as a JSON item. Choose the **Output Format** to instead get the raw CSV as a binary file or a text string. `Return All` / `Limit` apply to every format.
+
+### Commit the CSV to GitHub
+
+1. Set **Output Format** to **CSV (Binary File)** on the Finviz node (optionally set a **File Name**; it defaults to the Screener Name)
+2. Add a **GitHub** node after it, choose **File → Create** (or **Edit**)
+3. Enable **Binary File** and set the **Input Binary Field** to `data` (the Finviz node's default **Output Field**)
+4. Set the repository, file path, and commit message on the GitHub node
 
 To fetch multiple screeners, feed multiple URLs from an upstream node — each input item is processed independently.
 
