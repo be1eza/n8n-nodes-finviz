@@ -1,4 +1,4 @@
-import { parseCsvLine } from './Finviz.node';
+import { parseCsvLine, sanitizeFileName } from './Finviz.node';
 
 describe('parseCsvLine', () => {
 	it('splits simple comma-separated values', () => {
@@ -33,5 +33,27 @@ describe('parseCsvLine', () => {
 		expect(parseCsvLine('1,AAPL,"Apple Inc.",168.22,"-1.23%"')).toEqual([
 			'1', 'AAPL', 'Apple Inc.', '168.22', '-1.23%',
 		]);
+	});
+});
+
+describe('sanitizeFileName', () => {
+	it('appends a .csv extension when missing', () => {
+		expect(sanitizeFileName('screener')).toBe('screener.csv');
+	});
+
+	it('keeps a single .csv extension', () => {
+		expect(sanitizeFileName('report.csv')).toBe('report.csv');
+	});
+
+	it('falls back to screener.csv for empty input', () => {
+		expect(sanitizeFileName('')).toBe('screener.csv');
+	});
+
+	it('strips unsafe file name characters', () => {
+		expect(sanitizeFileName('S&P 500/Tech: *big*')).toBe('S&P 500Tech big.csv');
+	});
+
+	it('collapses whitespace and trims', () => {
+		expect(sanitizeFileName('  My   Screener  ')).toBe('My Screener.csv');
 	});
 });
